@@ -57,6 +57,28 @@ const productSchema = {
   },
 };
 
+const userSchema = {
+  body: {
+    type: "object",
+    required: ["name", "email"],
+    properties: {
+      name: {
+        type: "string",
+        minLength: 1,
+        maxLength: 100,
+      },
+      email: {
+        type: "string",
+        minLength: 5,
+      },
+      role: {
+        type: "string",
+        enum: ["customer", "admin"],
+      },
+    },
+  },
+};
+
 fastify.get("/api/categories", async () => {
   return categories;
 });
@@ -283,5 +305,121 @@ const start = async () => {
     process.exit(1);
   }
 };
+
+fastify.get("/api/users", async (request) => {
+  let result = [...users];
+
+  const { role } = request.query;
+
+  if (role) {
+    result = result.filter(
+      (user) => user.role === role
+    );
+  }
+
+  return result;
+});
+
+fastify.get("/api/users/:id", async (request, reply) => {
+  const id = Number(request.params.id);
+
+  const user = users.find((item) => item.id === id);
+
+  if (!user) {
+    return reply.status(404).send({
+      error: "User not found",
+    });
+  }
+
+  return user;
+});
+
+fastify.post(
+  "/api/users",
+  {
+    schema: userSchema,
+  },
+  async (request, reply) => {
+    const existingUser = users.find(
+      (item) => item.email === request.body.email
+    );
+
+    if (existingUser) {
+      return reply.status(409).send({
+        error: "Email already exists",
+      });
+    }
+
+    const newUser = {
+      id: userId++,
+      name: request.body.name,
+      email: request.body.email,
+      role: request.body.role || "customer",
+      createdAt: new Date().toISOString(),
+    };
+
+    users.push(newUser);
+
+    reply.status(201);
+
+    return newUser;
+  }
+);
+
+fastify.put(
+  "/api/users/:id",
+  {
+    schema: userSchema,
+  },
+  async (request, reply) => {
+    const id = Number(request.params.id);
+
+    const user = users.find((item) => item.id === id);
+
+    if (!user) {
+      return reply.status(404).send({
+        error: "User not found",
+      });
+    }
+
+    const emailExists = users.find(
+      (item) =>
+        item.email === request.body.email &&
+        item.id !== id
+    );
+
+    if (emailExists) {
+      return reply.status(409).send({
+        error: "Email already exists",
+      });
+    }
+
+    user.name = request.body.name;
+    user.email = request.body.email;
+    user.role = request.body.role || "customer";
+
+    return user;
+  }
+);
+
+fastify.delete("/api/users/:id", async (request, reply) => {
+  const id = Number(request.params.id);
+
+  const userIndex = users.findIndex(
+    (item) => item.id === id
+  );
+
+  if (userIndex === -1) {
+    return reply.status(404).send({
+      error: "User not found",
+    });
+  }
+
+  users.splice(userIndex, 1);
+
+  return {
+    message: "User deleted",
+  };
+});
 
 start();
