@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "start": "node src/tasks/fastify-basic/server.js"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tt130607-cyber/backend_dz_6.git"
