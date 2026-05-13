@@ -32,6 +32,31 @@ const categorySchema = {
   },
 };
 
+const productSchema = {
+  body: {
+    type: "object",
+    required: ["name", "price", "categoryId"],
+    properties: {
+      name: {
+        type: "string",
+        minLength: 1,
+        maxLength: 200,
+      },
+      price: {
+        type: "number",
+        minimum: 0.01,
+      },
+      categoryId: {
+        type: "integer",
+        minimum: 1,
+      },
+      inStock: {
+        type: "boolean",
+      },
+    },
+  },
+};
+
 fastify.get("/api/categories", async () => {
   return categories;
 });
@@ -120,6 +145,128 @@ fastify.delete("/api/categories/:id", async (request, reply) => {
 
   return {
     message: "Category deleted",
+  };
+});
+
+fastify.get("/api/products", async (request) => {
+  let result = [...products];
+
+  const { categoryId, inStock } = request.query;
+
+  if (categoryId) {
+    result = result.filter(
+      (product) => product.categoryId === Number(categoryId)
+    );
+  }
+
+  if (inStock !== undefined) {
+    result = result.filter(
+      (product) => product.inStock === (inStock === "true")
+    );
+  }
+
+  return result;
+});
+
+fastify.get("/api/products/:id", async (request, reply) => {
+  const id = Number(request.params.id);
+
+  const product = products.find((item) => item.id === id);
+
+  if (!product) {
+    return reply.status(404).send({
+      error: "Product not found",
+    });
+  }
+
+  return product;
+});
+
+fastify.post(
+  "/api/products",
+  {
+    schema: productSchema,
+  },
+  async (request, reply) => {
+    const category = categories.find(
+      (item) => item.id === request.body.categoryId
+    );
+
+    if (!category) {
+      return reply.status(400).send({
+        error: "Category not found",
+      });
+    }
+
+    const newProduct = {
+      id: productId++,
+      name: request.body.name,
+      price: request.body.price,
+      categoryId: request.body.categoryId,
+      inStock: request.body.inStock ?? true,
+      createdAt: new Date().toISOString(),
+    };
+
+    products.push(newProduct);
+
+    reply.status(201);
+
+    return newProduct;
+  }
+);
+
+fastify.put(
+  "/api/products/:id",
+  {
+    schema: productSchema,
+  },
+  async (request, reply) => {
+    const id = Number(request.params.id);
+
+    const product = products.find((item) => item.id === id);
+
+    if (!product) {
+      return reply.status(404).send({
+        error: "Product not found",
+      });
+    }
+
+    const category = categories.find(
+      (item) => item.id === request.body.categoryId
+    );
+
+    if (!category) {
+      return reply.status(400).send({
+        error: "Category not found",
+      });
+    }
+
+    product.name = request.body.name;
+    product.price = request.body.price;
+    product.categoryId = request.body.categoryId;
+    product.inStock = request.body.inStock ?? true;
+
+    return product;
+  }
+);
+
+fastify.delete("/api/products/:id", async (request, reply) => {
+  const id = Number(request.params.id);
+
+  const productIndex = products.findIndex(
+    (item) => item.id === id
+  );
+
+  if (productIndex === -1) {
+    return reply.status(404).send({
+      error: "Product not found",
+    });
+  }
+
+  products.splice(productIndex, 1);
+
+  return {
+    message: "Product deleted",
   };
 });
 
