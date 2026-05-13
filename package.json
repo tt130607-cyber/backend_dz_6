@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "start": "node src/tasks/fastify-basic/server.js"
+  "start": "node src/tasks/fastify-basic/server.js",
+  "start:crud": "node src/tasks/fastify-crud/server.js"
 },
   "repository": {
     "type": "git",
